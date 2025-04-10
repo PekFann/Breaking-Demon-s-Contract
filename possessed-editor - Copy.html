@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Possessed Card Editor</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'DKCanoodle';
+            src: url('./fonts/DK Canoodle.otf') format('opentype');
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        .editor {
+            flex: 1;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 0 40px;
+        }
+
+        .card-preview {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 600px;
+            padding-bottom: 50px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            padding-left: 2px;
+        }
+
+        .input-group input[type="text"],
+        .input-group textarea {
+            width: calc(100% - 24px);
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input[type="text"]:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .input-group input[type="file"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #e0e0e0;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #cardPreview {
+            width: 366px;
+            height: 525.5px;
+            position: relative;
+            transform: scale(1);
+            transform-origin: top center;
+            background-color: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('./assets/card-background.png');
+            background-size: cover;
+            background-position: center;
+            z-index: 2;
+        }
+
+        .preview-title {
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 2em;
+            font-weight: normal;
+            font-family: 'DKCanoodle', serif;
+            margin: -10px 25px 25px 25px;
+            position: relative;
+            z-index: 3;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+        }
+
+        .preview-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .preview-description {
+            padding: 20px;
+            font-size: 1em;
+            margin: 195px 40px 20px 40px;
+            height: 120px;
+            overflow-y: auto;
+            line-height: 1.4;
+            position: relative;
+            z-index: 3;
+            color: black;
+            text-align: center;
+            display: block;
+            background: transparent;
+            font-family: Arial, sans-serif;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .preview-description::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .preview-description::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .preview-description::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        .description-icon {
+            width: 1.4em;
+            height: 1.4em;
+            vertical-align: -0.3em;
+            margin: 0;
+            display: inline-block;
+        }
+
+        .preview-description img.description-icon {
+            width: 1.4em;
+            height: 1.4em;
+            vertical-align: -0.3em;
+            margin: 0;
+            display: inline-block;
+        }
+
+        #description {
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            font-size: 16px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 12px;
+            min-height: 100px;
+            text-align: center;
+        }
+
+        .stat-container {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            box-sizing: border-box;
+            z-index: 3;
+        }
+
+        .stat {
+            font-family: Arial, sans-serif;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            position: absolute;
+            width: 30px;
+            text-align: center;
+        }
+
+        .stat-left {
+            left: 121px;
+            bottom: 46px;
+        }
+
+        .stat-right {
+            right: 120px;
+            bottom: 46px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .icon-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .icon-btn img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        .icon-btn:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .icon-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            padding-left: 2px;
+        }
+
+        .visitor-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .visitor-counter i {
+            font-size: 16px;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="editor">
+            <h2>Card Editor</h2>
+            <div class="input-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" value="Name your Possessed">
+            </div>
+            <div class="input-group">
+                <label for="image">Character Image</label>
+                <input type="file" id="image" accept="image/*">
+            </div>
+            <div class="input-group">
+                <label for="description">Description</label>
+                <textarea id="description">Add your function here.</textarea>
+                <div class="icon-selector">
+                    <button class="icon-btn" onclick="insertIcon('health')" title="Health">
+                        <img src="./assets/icons/health.png" alt="Health">
+                    </button>
+                    <button class="icon-btn" onclick="insertIcon('friendship')" title="Friendship">
+                        <img src="./assets/icons/friendship.png" alt="Friendship">
+                    </button>
+                    <button class="icon-btn" onclick="insertIcon('energy')" title="Energy">
+                        <img src="./assets/icons/energy.png" alt="Energy">
+                    </button>
+                    <button class="icon-btn" onclick="insertIcon('attack')" title="Attack">
+                        <img src="./assets/icons/attack.png" alt="Attack">
+                    </button>
+                    <button class="icon-btn" onclick="insertIcon('demon-health')" title="Demon Health">
+                        <img src="./assets/icons/demon-health.png" alt="Demon Health">
+                    </button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="stat1">Possessed's Health</label>
+                <input type="text" id="stat1" value="11">
+            </div>
+            <div class="input-group">
+                <label for="stat2">Friendship Requirement</label>
+                <input type="text" id="stat2" value="5">
+            </div>
+            <button onclick="downloadCard()">Download Card</button>
+        </div>
+
+        <div class="card-preview">
+            <div id="cardPreview">
+                <div class="card-background"></div>
+                <div id="previewTitle" class="preview-title">Name your Possessed</div>
+                <img id="previewImage" class="preview-image" src="#" style="display: none;">
+                <div id="previewDescription" class="preview-description">Add your function here.</div>
+                <div class="stat-container">
+                    <div id="previewStat1" class="stat stat-left">11</div>
+                    <div id="previewStat2" class="stat stat-right">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="visitor-counter">
+        <i>💾</i> Cards Created: <span id="downloadCount">0</span>
+    </div>
+
+    <script>
+        // Store background image data URL
+        let backgroundImageDataURL = './assets/card-background.png';
+
+        // Update preview as user types
+        document.getElementById('title').addEventListener('input', updatePreview);
+        document.getElementById('description').addEventListener('input', updatePreview);
+        document.getElementById('stat1').addEventListener('input', updatePreview);
+        document.getElementById('stat2').addEventListener('input', updatePreview);
+        
+        // Handle character image upload
+        document.getElementById('image').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('previewImage');
+                    img.crossOrigin = "anonymous";
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    
+                    // Wait for image to load to maintain aspect ratio
+                    img.onload = function() {
+                        const containerWidth = img.width;
+                        const containerHeight = 470; // Fixed height
+                        const imageAspectRatio = img.naturalWidth / img.naturalHeight;
+                        const containerAspectRatio = containerWidth / containerHeight;
+
+                        if (imageAspectRatio > containerAspectRatio) {
+                            // Image is wider than container
+                            img.style.width = '100%';
+                            img.style.height = 'auto';
+                        } else {
+                            // Image is taller than container
+                            img.style.width = 'auto';
+                            img.style.height = '100%';
+                        }
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function updatePreview() {
+            document.getElementById('previewTitle').textContent = document.getElementById('title').value;
+            
+            // Update description with proper icon rendering
+            let descriptionText = document.getElementById('description').value;
+            
+            // Replace symbols with icon images
+            const symbolMap = {
+                '⚔': 'attack',
+                '⚡': 'energy',
+                '❤': 'health',
+                '🤝': 'friendship',
+                '💔': 'demon-health'
+            };
+            
+            for (const [symbol, iconName] of Object.entries(symbolMap)) {
+                descriptionText = descriptionText.replace(
+                    new RegExp(symbol, 'g'), 
+                    `<img src="./assets/icons/${iconName}.png" class="description-icon" alt="${iconName}">`
+                );
+            }
+            
+            const previewDescription = document.getElementById('previewDescription');
+            previewDescription.innerHTML = descriptionText;
+
+            document.getElementById('previewStat1').textContent = document.getElementById('stat1').value || "Possessed's Health";
+            document.getElementById('previewStat2').textContent = document.getElementById('stat2').value || "Friendship Requirement";
+        }
+
+        function downloadCard() {
+            // Create a temporary div for rendering at full size
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.top = '-9999px';
+            document.body.appendChild(tempDiv);
+            
+            // Clone the card for full-size rendering
+            const clonedCard = document.getElementById('cardPreview').cloneNode(true);
+            clonedCard.style.transform = 'none';
+            clonedCard.style.width = '366px';
+            clonedCard.style.height = '525.5px';
+            
+            tempDiv.appendChild(clonedCard);
+
+            // Configure html2canvas options
+            const options = {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: null,
+                logging: true,
+                width: 366,
+                height: 525.5,
+                onclone: function(clonedDoc) {
+                    console.log('Starting clone process...');
+                    const targetCard = clonedDoc.querySelector('#cardPreview');
+                    targetCard.style.transform = 'none';
+                    targetCard.style.width = '366px';
+                    targetCard.style.height = '525.5px';
+
+                    // Update background image path to absolute path
+                    const bgDiv = targetCard.querySelector('.card-background');
+                    const currentPath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+                    bgDiv.style.backgroundImage = `url(${currentPath}/assets/card-background.png)`;
+                    
+                    // Add font to cloned document
+                    const style = clonedDoc.createElement('style');
+                    style.textContent = `
+                        @font-face {
+                            font-family: 'DKCanoodle';
+                            src: url('${currentPath}/fonts/DK Canoodle.otf') format('opentype');
+                            font-weight: normal;
+                            font-style: normal;
+                        }
+                    `;
+                    clonedDoc.head.appendChild(style);
+                    console.log('Clone process completed');
+                }
+            };
+
+            console.log('Starting html2canvas render...');
+            html2canvas(clonedCard, options).then(canvas => {
+                console.log('Canvas generated successfully');
+                try {
+                    // Convert to PNG and trigger download
+                    console.log('Converting to PNG...');
+                    const dataUrl = canvas.toDataURL('image/png', 1.0);
+                    console.log('Data URL generated successfully');
+                    
+                    const link = document.createElement('a');
+                    link.download = 'card.png';
+                    link.href = dataUrl;
+                    document.body.appendChild(link);
+                    console.log('Triggering download...');
+                    link.click();
+                    document.body.removeChild(link);
+                    console.log('Download completed');
+                    
+                    // Increment download counter
+                    updateDownloadCount();
+                } catch (err) {
+                    console.error('Detailed error in download process:', err);
+                    console.error('Error stack:', err.stack);
+                    alert('Error creating download link. Check browser console for details.');
+                } finally {
+                    // Clean up temporary elements
+                    document.body.removeChild(tempDiv);
+                }
+            }).catch(error => {
+                console.error('Detailed html2canvas error:', error);
+                console.error('Error stack:', error.stack);
+                alert('Error generating image. Please check console for details.');
+                document.body.removeChild(tempDiv);
+            });
+        }
+
+        // Add this new function for icon insertion
+        function insertIcon(icon) {
+            const textarea = document.getElementById('description');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            const before = text.substring(0, start);
+            const after = text.substring(end);
+            
+            // Create a shorter symbol for the icon
+            let symbol;
+            switch(icon) {
+                case 'attack': symbol = '⚔'; break;
+                case 'energy': symbol = '⚡'; break;
+                case 'health': symbol = '❤'; break;
+                case 'friendship': symbol = '🤝'; break;
+                case 'demon-health': symbol = '💔'; break;
+                default: symbol = icon;
+            }
+            
+            // Insert the symbol directly without adding spaces
+            textarea.value = before + symbol + after;
+            textarea.focus();
+            
+            // Set cursor position after the inserted icon
+            const newCursorPos = start + symbol.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+            
+            // Update the preview
+            updatePreview();
+        }
+
+        // Download counter functionality
+        function updateDownloadCount() {
+            let count = localStorage.getItem('downloadCount') || '0';
+            count = parseInt(count) + 1;
+            localStorage.setItem('downloadCount', count);
+            document.getElementById('downloadCount').textContent = count;
+        }
+
+        // Initialize download count
+        document.getElementById('downloadCount').textContent = localStorage.getItem('downloadCount') || '0';
+    </script>
+</body>
+</html> 
